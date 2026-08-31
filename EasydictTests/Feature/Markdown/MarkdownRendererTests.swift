@@ -63,6 +63,12 @@ struct MarkdownRendererTests {
         #expect(result.string == "2 * 3 * 4")
     }
 
+    @Test("Foundation Markdown parsing handles escaped punctuation")
+    func escapedPunctuation() {
+        let result = renderer.render(#"Keep \*literal\* punctuation."#)
+        #expect(result.string == "Keep *literal* punctuation.")
+    }
+
     @Test("Inline code carries a monospaced font and background")
     func inlineCode() {
         let result = renderer.render("Run `swift build` now.")

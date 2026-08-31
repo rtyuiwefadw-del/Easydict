@@ -225,102 +225,57 @@ struct MarkdownRenderer {
         base: [NSAttributedString.Key: Any]
     )
         -> NSAttributedString {
-        let result = NSMutableAttributedString()
-        let scalars = Array(text)
-        var index = 0
+        do {
+            let options = AttributedString.MarkdownParsingOptions(
+                interpretedSyntax: .inlineOnlyPreservingWhitespace
+            )
+            let parsed = try AttributedString(markdown: text, options: options)
+            let result = NSMutableAttributedString()
 
-        func append(_ string: String, extra: [NSAttributedString.Key: Any] = [:]) {
-            var attrs = base
-            for (key, value) in extra { attrs[key] = value }
-            result.append(NSAttributedString(string: string, attributes: attrs))
+            for run in parsed.runs {
+                var attributes = base
+                let intent = run.inlinePresentationIntent
+                let currentFont = base[.font] as? NSFont ?? baseFont
+
+                if intent?.contains(.stronglyEmphasized) == true {
+                    attributes[.font] = NSFontManager.shared.convert(
+                        currentFont,
+                        toHaveTrait: .boldFontMask
+                    )
+                }
+                if intent?.contains(.emphasized) == true {
+                    let font = attributes[.font] as? NSFont ?? currentFont
+                    attributes[.font] = NSFontManager.shared.convert(
+                        font,
+                        toHaveTrait: .italicFontMask
+                    )
+                }
+
+                if intent?.contains(.code) == true {
+                    attributes[.font] = monospaceFont
+                    attributes[.backgroundColor] = codeBackground
+                }
+
+                if intent?.contains(.strikethrough) == true {
+                    attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+                }
+
+                if let url = run.link {
+                    attributes[.link] = url
+                    attributes[.foregroundColor] = linkColor
+                    attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
+                }
+
+                let segment = String(parsed.characters[run.range])
+                result.append(NSAttributedString(string: segment, attributes: attributes))
+            }
+
+            return result
+        } catch {
+            // Foundation's parser is intentionally best-effort for streaming
+            // input. If an incomplete sequence cannot be parsed, keep it visible.
+            return NSAttributedString(string: text, attributes: base)
         }
-
-        while index < scalars.count {
-            let char = scalars[index]
-
-            if char == "`",
-               let close = findClose(of: "`", in: scalars, after: index + 1) {
-                let inner = String(scalars[(index + 1) ..< close])
-                let codeAttrs: [NSAttributedString.Key: Any] = [
-                    .font: monospaceFont,
-                    .backgroundColor: codeBackground,
-                ]
-                append(inner, extra: codeAttrs)
-                index = close + 1
-                continue
-            }
-
-            // ***bold+italic*** must be tried before **bold**, otherwise the
-            // outer pair of stars binds first and one star leaks as literal.
-            if char == "*", index + 2 < scalars.count,
-               scalars[index + 1] == "*", scalars[index + 2] == "*",
-               let close = findClose(of: "***", in: scalars, after: index + 3) {
-                let inner = String(scalars[(index + 3) ..< close])
-                let baseFontValue = base[.font] as? NSFont ?? baseFont
-                let boldItalic = NSFontManager.shared.convert(
-                    NSFontManager.shared.convert(baseFontValue, toHaveTrait: .boldFontMask),
-                    toHaveTrait: .italicFontMask
-                )
-                result.append(renderInline(inner, base: merge(base, with: [.font: boldItalic])))
-                index = close + 3
-                continue
-            }
-
-            if char == "*", index + 1 < scalars.count, scalars[index + 1] == "*",
-               let close = findClose(of: "**", in: scalars, after: index + 2) {
-                let inner = String(scalars[(index + 2) ..< close])
-                let boldFont = NSFontManager.shared.convert(
-                    base[.font] as? NSFont ?? baseFont,
-                    toHaveTrait: .boldFontMask
-                )
-                result.append(renderInline(inner, base: merge(base, with: [.font: boldFont])))
-                index = close + 2
-                continue
-            }
-
-            if char == "*" || char == "_",
-               canOpenItalic(char, scalars: scalars, at: index),
-               let close = findClose(of: String(char), in: scalars, after: index + 1),
-               close > index + 1,
-               canCloseItalic(char, scalars: scalars, at: close) {
-                let inner = String(scalars[(index + 1) ..< close])
-                let italicFont = NSFontManager.shared.convert(
-                    base[.font] as? NSFont ?? baseFont,
-                    toHaveTrait: .italicFontMask
-                )
-                result.append(renderInline(inner, base: merge(base, with: [.font: italicFont])))
-                index = close + 1
-                continue
-            }
-
-            if char == "~", index + 1 < scalars.count, scalars[index + 1] == "~",
-               let close = findClose(of: "~~", in: scalars, after: index + 2) {
-                let inner = String(scalars[(index + 2) ..< close])
-                result.append(renderInline(
-                    inner,
-                    base: merge(base, with: [.strikethroughStyle: NSUnderlineStyle.single.rawValue])
-                ))
-                index = close + 2
-                continue
-            }
-
-            if char == "[", let link = parseLink(scalars: scalars, start: index) {
-                let linkAttrs: [NSAttributedString.Key: Any] = [
-                    .link: link.url,
-                    .foregroundColor: linkColor,
-                    .underlineStyle: NSUnderlineStyle.single.rawValue,
-                ]
-                result.append(renderInline(link.text, base: merge(base, with: linkAttrs)))
-                index = link.endIndex
-                continue
-            }
-
-            // Default: emit one character with base attributes
-            append(String(char))
-            index += 1
-        }
-
-        return result
     }
 
     // MARK: Block detection
@@ -361,79 +316,6 @@ struct MarkdownRenderer {
         return (number, String(afterDigits.dropFirst(2)))
     }
 
-    // MARK: Inline helpers
-
-    /// Decide whether `marker` at `index` can open an italic run. The next
-    /// character must not be whitespace; `_` also requires that the preceding
-    /// character is not part of a word so identifiers like `foo_bar_baz` keep
-    /// their literal underscores.
-    private func canOpenItalic(_ marker: Character, scalars: [Character], at index: Int) -> Bool {
-        let next = index + 1
-        guard next < scalars.count, !scalars[next].isWhitespace else { return false }
-        guard marker == "_" else { return true }
-        guard index > 0 else { return true }
-        return !isWordCharacter(scalars[index - 1])
-    }
-
-    /// Decide whether `marker` at `closeIndex` can close an italic run.
-    /// Mirrors ``canOpenItalic`` so the previous character must not be
-    /// whitespace and `_` only closes when the next character is outside a word.
-    private func canCloseItalic(_ marker: Character, scalars: [Character], at closeIndex: Int) -> Bool {
-        let previous = closeIndex - 1
-        guard previous >= 0, !scalars[previous].isWhitespace else { return false }
-        guard marker == "_" else { return true }
-        let next = closeIndex + 1
-        guard next < scalars.count else { return true }
-        return !isWordCharacter(scalars[next])
-    }
-
-    private func isWordCharacter(_ char: Character) -> Bool {
-        char.isLetter || char.isNumber || char == "_"
-    }
-
-    private func findClose(of marker: String, in scalars: [Character], after start: Int) -> Int? {
-        let markerChars = Array(marker)
-        guard !markerChars.isEmpty else { return nil }
-        var i = start
-        while i + markerChars.count <= scalars.count {
-            var matched = true
-            for offset in 0 ..< markerChars.count where scalars[i + offset] != markerChars[offset] {
-                matched = false
-                break
-            }
-            if matched { return i }
-            i += 1
-        }
-        return nil
-    }
-
-    private func parseLink(scalars: [Character], start: Int)
-        -> (text: String, url: URL, endIndex: Int)? {
-        guard start < scalars.count, scalars[start] == "[" else { return nil }
-        guard let bracketClose = findClose(of: "]", in: scalars, after: start + 1) else {
-            return nil
-        }
-        let parenOpen = bracketClose + 1
-        guard parenOpen < scalars.count, scalars[parenOpen] == "(" else { return nil }
-        guard let parenClose = findClose(of: ")", in: scalars, after: parenOpen + 1) else {
-            return nil
-        }
-        let label = String(scalars[(start + 1) ..< bracketClose])
-        let urlString = String(scalars[(parenOpen + 1) ..< parenClose])
-            .trimmingCharacters(in: .whitespaces)
-        guard let url = URL(string: urlString) else { return nil }
-        return (label, url, parenClose + 1)
-    }
-
-    private func merge(
-        _ base: [NSAttributedString.Key: Any],
-        with overrides: [NSAttributedString.Key: Any]
-    )
-        -> [NSAttributedString.Key: Any] {
-        var combined = base
-        for (key, value) in overrides { combined[key] = value }
-        return combined
-    }
 }
 
 // MARK: - Custom attribute keys
