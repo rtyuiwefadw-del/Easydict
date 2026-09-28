@@ -21,6 +21,10 @@ import Foundation
 struct MarkdownRenderer {
     // MARK: Internal
 
+    /// Height of the strip above code in a fenced block that hosts the copy
+    /// button overlaid by ``MarkdownLabel``.
+    static let codeBlockHeaderHeight: CGFloat = 26
+
     /// Base text style. Block elements scale their fonts and adjust paragraph
     /// styles relative to these values so the renderer blends with the host
     /// label's font-size ratio and dark-mode colors.
@@ -355,6 +359,14 @@ struct MarkdownRenderer {
         let block = NSTextBlock()
         block.backgroundColor = codeBackground
         block.setWidth(10, type: .absoluteValueType, for: .padding)
+        // Reserve a strip above the code where host views overlay a copy
+        // button, so the button never covers the first line.
+        block.setWidth(
+            Self.codeBlockHeaderHeight,
+            type: .absoluteValueType,
+            for: .padding,
+            edge: .minY
+        )
         // Without an explicit width a bare NSTextBlock falls back to
         // shrink-to-fit sizing, which degenerates into one character per
         // line under TextKit's line-fragment negotiation. Pin it to the
@@ -367,7 +379,9 @@ struct MarkdownRenderer {
         style.textBlocks = [block]
 
         let attrs = baseAttributes(font: monospaceFont, paragraph: style)
-        output.append(NSAttributedString(string: code, attributes: attrs))
+        var codeAttrs = attrs
+        codeAttrs[.markdownCodeBlock] = code
+        output.append(NSAttributedString(string: code, attributes: codeAttrs))
         output.append(NSAttributedString(string: "\n", attributes: attrs))
     }
 
@@ -808,6 +822,10 @@ extension NSAttributedString.Key {
     /// Marks a run that originated from a Markdown blockquote block, allowing
     /// host views to draw a side bar without re-parsing the source.
     static let markdownBlockquote = NSAttributedString.Key("EDMarkdownBlockquote")
+
+    /// Marks the text of a fenced code block; the value is the raw code
+    /// string, so host views can copy it without re-parsing the source.
+    static let markdownCodeBlock = NSAttributedString.Key("EDMarkdownCodeBlock")
 }
 
 // MARK: - ThematicBreakAttachment

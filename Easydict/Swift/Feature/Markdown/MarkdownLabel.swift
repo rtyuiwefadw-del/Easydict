@@ -49,12 +49,74 @@ final class MarkdownLabel: EZLabel {
         )
         let attributed = renderer.render(source)
         textStorage?.setAttributedString(attributed)
+        needsLayout = true
+    }
+
+    override func layout() {
+        super.layout()
+        layoutCodeCopyButtons()
     }
 
     // MARK: Private
 
+    /// Copy buttons overlaid on code blocks, reused across re-renders.
+    private var codeCopyButtons: [CodeBlockCopyButton] = []
+
     private var resolvedForegroundColor: NSColor {
         if let textForegroundColor { return textForegroundColor }
         return isDarkMode ? .ez_resultTextDark() : .ez_resultTextLight()
+    }
+
+    /// Places one copy button at the top-right corner of each code block,
+    /// inside the header strip the renderer reserves above the code.
+    private func layoutCodeCopyButtons() {
+        var blocks: [(range: NSRange, code: String)] = []
+        if markdownEnabled, let textStorage {
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            textStorage.enumerateAttribute(.markdownCodeBlock, in: fullRange) { value, range, _ in
+                if let code = value as? String, range.length > 0 {
+                    blocks.append((range, code))
+                }
+            }
+        }
+
+        while codeCopyButtons.count > blocks.count {
+            codeCopyButtons.removeLast().removeFromSuperview()
+        }
+        while codeCopyButtons.count < blocks.count {
+            let button = CodeBlockCopyButton()
+            addSubview(button)
+            codeCopyButtons.append(button)
+        }
+
+        guard let layoutManager, let textContainer, let textStorage else { return }
+
+        let size = CodeBlockCopyButton.size
+        let inset = (MarkdownRenderer.codeBlockHeaderHeight - size) / 2
+        for (button, block) in zip(codeCopyButtons, blocks) {
+            button.code = block.code
+
+            let glyphRange = layoutManager.glyphRange(forCharacterRange: block.range, actualCharacterRange: nil)
+            layoutManager.ensureLayout(forGlyphRange: glyphRange)
+
+            let paragraphStyle = textStorage.attribute(
+                .paragraphStyle, at: block.range.location, effectiveRange: nil
+            ) as? NSParagraphStyle
+            var blockRect: NSRect
+            if let textBlock = paragraphStyle?.textBlocks.first {
+                blockRect = layoutManager.boundsRect(for: textBlock, glyphRange: glyphRange)
+            } else {
+                blockRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+            }
+            blockRect = blockRect.offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
+
+            // NSTextView is flipped, so minY is the visual top of the block.
+            button.frame = NSRect(
+                x: blockRect.maxX - size - inset,
+                y: blockRect.minY + inset,
+                width: size,
+                height: size
+            )
+        }
     }
 }

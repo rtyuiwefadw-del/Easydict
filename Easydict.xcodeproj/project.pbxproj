@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ED0C7077EBC5EDEC328B68A0 /* CodeBlockCopyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0CE8CEF70DA87F11A1A090 /* CodeBlockCopyButton.swift */; };
 		ED0C0DFFAE45A7F3DFD2201A /* ConversationTurnTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0CCEFA11019B38526B7478 /* ConversationTurnTests.swift */; };
 		ED0C083BBE5D851DC2B1162B /* QueryAccessoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C7B61CFB33A92AAC7A8C3 /* QueryAccessoryView.swift */; };
 		ED0C568180A86B47432AE32D /* FollowUpButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C552A61A8D18205B8F7D1 /* FollowUpButton.swift */; };
@@ -639,6 +640,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		ED0CE8CEF70DA87F11A1A090 /* CodeBlockCopyButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeBlockCopyButton.swift; sourceTree = "<group>"; };
 		ED0CCEFA11019B38526B7478 /* ConversationTurnTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationTurnTests.swift; sourceTree = "<group>"; };
 		ED0C7B61CFB33A92AAC7A8C3 /* QueryAccessoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryAccessoryView.swift; sourceTree = "<group>"; };
 		ED0C552A61A8D18205B8F7D1 /* FollowUpButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowUpButton.swift; sourceTree = "<group>"; };
@@ -1428,6 +1430,7 @@
 				02DEDC042026043000000002 /* MarkdownRenderer.swift */,
 				02DEDC042026043000000003 /* MarkdownLabel.swift */,
 				02DEDC042026043000000004 /* MarkdownToggleButton.swift */,
+				ED0CE8CEF70DA87F11A1A090 /* CodeBlockCopyButton.swift */,
 			);
 			path = Markdown;
 			sourceTree = "<group>";
@@ -4288,6 +4291,7 @@
 				02DEDC04202604300000007E /* MarkdownRenderer.swift in Sources */,
 				02DEDC04202604300000008E /* MarkdownLabel.swift in Sources */,
 				02DEDC04202604300000009E /* MarkdownToggleButton.swift in Sources */,
+				ED0C7077EBC5EDEC328B68A0 /* CodeBlockCopyButton.swift in Sources */,
 				ED0C083BBE5D851DC2B1162B /* QueryAccessoryView.swift in Sources */,
 				ED0C568180A86B47432AE32D /* FollowUpButton.swift in Sources */,
 				ED0CB75C5AEFB46C1790E02F /* ChatImageLoader.swift in Sources */,

@@ -270,6 +270,23 @@ struct MarkdownRendererTests {
         #expect(style?.textBlocks.isEmpty == false)
     }
 
+    @Test("Fenced code block carries its raw code for the copy button")
+    func codeBlockCarriesRawCode() {
+        let source = "Before\n```swift\nlet a = 1\nprint(a)\n```\nAfter"
+        let result = renderer.render(source)
+        let range = (result.string as NSString).range(of: "let a = 1")
+
+        let code = result.attribute(.markdownCodeBlock, at: range.location, effectiveRange: nil) as? String
+        #expect(code == "let a = 1\nprint(a)")
+
+        let afterRange = (result.string as NSString).range(of: "After")
+        #expect(result.attribute(.markdownCodeBlock, at: afterRange.location, effectiveRange: nil) == nil)
+
+        let style = result.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle
+        let topPadding = style?.textBlocks.first?.width(for: .padding, edge: .minY)
+        #expect(topPadding == MarkdownRenderer.codeBlockHeaderHeight)
+    }
+
     @Test("Inline LaTeX converts Greek letters and superscripts to Unicode")
     func inlineLatexGreekAndSuperscript() {
         let result = renderer.render(#"Given $\alpha^2 + \beta^2 = \gamma^2$ holds."#)
