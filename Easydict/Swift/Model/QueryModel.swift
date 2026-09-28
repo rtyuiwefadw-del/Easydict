@@ -42,6 +42,7 @@ open class QueryModel: NSObject, NSCopying {
         model.specifiedTextLanguageDict = specifiedTextLanguageDict.mutableCopy() as? NSMutableDictionary
             ?? NSMutableDictionary()
         model.autoQuery = autoQuery
+        model.attachedImages = attachedImages
         return model
     }
 
@@ -70,6 +71,9 @@ open class QueryModel: NSObject, NSCopying {
 
     /// OCR image for the current query.
     var ocrImage: NSImage?
+
+    /// Images the user attached to send to AI services with the query.
+    var attachedImages: [NSImage] = []
 
     /// Audio URL generated for the current query.
     var audioURL: String?

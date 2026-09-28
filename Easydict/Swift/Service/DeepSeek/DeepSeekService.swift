@@ -111,7 +111,7 @@ class DeepSeekService: OpenAIService {
                     )
 
                     let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)
-                    try validateHTTPResponse(response)
+                    try await validateHTTPResponse(response, body: asyncBytes)
                     try await processStreamBytes(asyncBytes, continuation: continuation)
                     continuation.finish()
                 } catch is CancellationError {
@@ -152,13 +152,33 @@ class DeepSeekService: OpenAIService {
         return request
     }
 
-    private func validateHTTPResponse(_ response: URLResponse) throws {
+    /// Throws for non-2xx responses, surfacing the API's error message (for
+    /// example a model rejecting image input) instead of a bare status code.
+    private func validateHTTPResponse(
+        _ response: URLResponse,
+        body: URLSession.AsyncBytes
+    ) async throws {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw QueryError(type: .api, message: "Invalid DeepSeek response")
         }
 
-        guard (200 ... 299).contains(httpResponse.statusCode) else {
-            throw QueryError(type: .api, message: "HTTP \(httpResponse.statusCode)")
+        let statusCode = httpResponse.statusCode
+        guard (200 ... 299).contains(statusCode) else {
+            var data = Data()
+            let maxErrorBodyLength = 64 * 1024
+            for try await byte in body {
+                data.append(byte)
+                if data.count >= maxErrorBodyLength { break }
+            }
+
+            let apiMessage = (try? JSONDecoder().decode(DeepSeekErrorResponse.self, from: data))?
+                .error?.message?.trim()
+            let bodyText = String(data: data, encoding: .utf8)?.trim()
+            throw QueryError(
+                type: .api,
+                message: "HTTP \(statusCode)",
+                errorDataMessage: apiMessage ?? bodyText.map { String($0.prefix(300)) }
+            )
         }
     }
 
@@ -272,19 +292,87 @@ private struct DeepSeekChatRequest: Encodable {
 // MARK: - DeepSeekChatMessage
 
 /// Minimal chat message shape accepted by DeepSeek's OpenAI-compatible
-/// endpoint, built from Easydict's provider-agnostic prompt messages.
+/// endpoint, built from Easydict's provider-agnostic prompt messages. User
+/// messages with images encode `content` as OpenAI-style content parts.
 private struct DeepSeekChatMessage: Encodable {
     // MARK: Lifecycle
 
     init(_ message: ChatMessage) {
         self.role = message.role.rawValue
         self.content = message.content
+        self.imageURLs = message.imageURLs
     }
 
     // MARK: Internal
 
     let role: String
     let content: String
+    let imageURLs: [String]
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(role, forKey: .role)
+
+        if imageURLs.isEmpty {
+            try container.encode(content, forKey: .content)
+            return
+        }
+
+        var parts: [DeepSeekContentPart] = []
+        if !content.isEmpty {
+            parts.append(.text(content))
+        }
+        parts += imageURLs.map { .imageURL($0) }
+        try container.encode(parts, forKey: .content)
+    }
+
+    // MARK: Private
+
+    private enum CodingKeys: String, CodingKey {
+        case role
+        case content
+    }
+}
+
+// MARK: - DeepSeekContentPart
+
+/// One OpenAI-style content part: a text block or an `image_url` reference.
+private enum DeepSeekContentPart: Encodable {
+    case text(String)
+    case imageURL(String)
+
+    // MARK: Internal
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .text(text):
+            try container.encode("text", forKey: .type)
+            try container.encode(text, forKey: .text)
+        case let .imageURL(url):
+            try container.encode("image_url", forKey: .type)
+            try container.encode(["url": url], forKey: .imageURL)
+        }
+    }
+
+    // MARK: Private
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case text
+        case imageURL = "image_url"
+    }
+}
+
+// MARK: - DeepSeekErrorResponse
+
+/// Error body returned by DeepSeek's OpenAI-compatible endpoint.
+private struct DeepSeekErrorResponse: Decodable {
+    struct Detail: Decodable {
+        let message: String?
+    }
+
+    let error: Detail?
 }
 
 // MARK: - DeepSeekThinking

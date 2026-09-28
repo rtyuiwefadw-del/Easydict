@@ -903,6 +903,40 @@ static EZWindowManager *_instance;
     }];
 }
 
+/// Take a screenshot and attach it to the fixed window's input, waiting for
+/// the user's question instead of running OCR.
+- (void)screenshotAskAI {
+    MMLogInfo(@"Screenshot ask AI");
+
+    [self closeFloatingWindowIfNotPinnedOrMain];
+
+    [self captureWithRestorePreviousApp:NO completion:^(NSImage *_Nullable image) {
+        if (!image) {
+            MMLogWarn(@"Screenshot ask AI skipped: captured image is nil");
+            return;
+        }
+
+        EZWindowType windowType = EZWindowTypeFixed;
+        CGPoint point = [self floatingWindowLocationWithType:windowType];
+        EZBaseQueryWindow *window = [self windowWithType:windowType];
+
+        // Show an empty input first, then attach the image once the window
+        // has been reset, so the reset cannot drop the attachment.
+        [self showFloatingWindowType:windowType
+                           queryText:@""
+                           autoQuery:NO
+                          actionType:EZActionTypeNone
+                             atPoint:point
+                   completionHandler:^{
+            EZBaseQueryViewController *queryViewController = window.queryViewController;
+            [queryViewController endFollowUp];
+            [queryViewController clearInput];
+            [queryViewController attachImages:@[ image ]];
+            [self orderFrontWindowAndFocusInputTextView:window];
+        }];
+    }];
+}
+
 /// Translate text from pasteboard, support both image and text.
 - (void)pasteboardTranslate:(EZWindowType)windowType {
     MMLogInfo(@"Pasteboard Translate with windowType: %@", @(windowType));

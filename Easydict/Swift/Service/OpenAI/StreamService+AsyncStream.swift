@@ -50,16 +50,27 @@ extension StreamService {
                 }
 
                 var resultText = ""
-                let queryType = queryType(text: text, from: from, to: to)
+                let turn = beginConversationTurn(question: text)
+                // Follow-up and image turns are free-form chat, not dictionary lookups.
+                let queryType: EZQueryTextType = turn.isFollowUp || !turn.imageURLs.isEmpty
+                    ? .translation
+                    : queryType(text: text, from: from, to: to)
 
                 do {
+                    if !turn.imageURLs.isEmpty, !supportsImageInput {
+                        throw QueryError(
+                            type: .unsupportedQueryType,
+                            message: String(localized: "conversation.error.image_unsupported")
+                        )
+                    }
+
                     let contentStream = contentStreamTranslate(text, from: from, to: to)
                     for try await content in contentStream {
                         try Task.checkCancellation()
 
                         resultText += content
                         updateResultText(
-                            resultText,
+                            turn.transcriptPrefix + resultText,
                             queryType: queryType,
                             error: nil,
                             targetResult: targetResult,
@@ -70,12 +81,14 @@ extension StreamService {
                     }
 
                     resultText = getFinalResultText(resultText)
+                    let transcript = turn.transcriptPrefix + resultText
+                    finishConversationTurn(answer: resultText, transcript: transcript)
                     // Pass markStreamFinished: true so that isStreamFinished is set atomically
                     // with the translatedResults update inside the lock. Setting it outside the
                     // lock first would allow a concurrent throttle delivery of an earlier
                     // snapshot to overwrite the final value before the lock is re-acquired.
                     updateResultText(
-                        resultText,
+                        transcript,
                         queryType: queryType,
                         error: nil,
                         markStreamFinished: true,
@@ -101,8 +114,12 @@ extension StreamService {
                         return
                     }
                     if !resultText.isEmpty {
+                        // Keep the partial answer as context so the card and the
+                        // next follow-up stay consistent.
+                        let transcript = turn.transcriptPrefix + resultText
+                        finishConversationTurn(answer: resultText, transcript: transcript)
                         updateResultText(
-                            resultText,
+                            transcript,
                             queryType: queryType,
                             error: nil,
                             targetResult: targetResult,
@@ -121,8 +138,9 @@ extension StreamService {
                     // Handle the error and notify the user.
                     // error != nil causes updateResultText to set isStreamFinished = true
                     // inside the lock, so no separate outside-lock assignment is needed.
+                    // A failed follow-up keeps the earlier transcript visible.
                     updateResultText(
-                        resultText,
+                        turn.transcriptPrefix + resultText,
                         queryType: queryType,
                         error: error,
                         targetResult: targetResult,

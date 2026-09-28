@@ -16,6 +16,9 @@ NS_ASSUME_NONNULL_BEGIN
 /// Paste text block
 @property (nonatomic, copy) void (^pasteTextBlock)(NSString *text);
 
+/// Called before pasting text; return YES when the pasteboard images were consumed.
+@property (nonatomic, copy) BOOL (^pasteImagesBlock)(void);
+
 
 @property (nonatomic, copy) NSString *placeholderText;
 

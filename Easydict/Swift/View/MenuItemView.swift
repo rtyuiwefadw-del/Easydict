@@ -38,6 +38,7 @@ struct MenuItemView: View {
             Divider()
 
             silentScreenshotOCRItem.keyboardShortcut(.silentScreenshotOCR)
+            screenshotAskAIItem.keyboardShortcut(.screenshotAskAI)
 
             if showOCRMenuItems {
                 screenshotOCRItem
@@ -115,6 +116,10 @@ struct MenuItemView: View {
 
     @ViewBuilder private var silentScreenshotOCRItem: some View {
         menuItem(for: .silentScreenshotOCR)
+    }
+
+    @ViewBuilder private var screenshotAskAIItem: some View {
+        menuItem(for: .screenshotAskAI)
     }
 
     @ViewBuilder private var screenshotOCRItem: some View {

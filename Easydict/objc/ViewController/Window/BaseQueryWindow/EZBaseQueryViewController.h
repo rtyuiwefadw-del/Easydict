@@ -43,6 +43,15 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)retryQueryWithLanguage:(EZLanguage)language;
 
+/// Attach images to the input so the next question sends them to AI services.
+- (void)attachImages:(NSArray<NSImage *> *)images;
+
+/// Enter follow-up mode: the next Enter continues `service`'s last answer.
+- (void)beginFollowUpWithService:(EZQueryService *)service;
+
+/// Leave follow-up mode, so the next Enter starts a normal query.
+- (void)endFollowUp;
+
 - (void)clearInput;
 - (void)clearAll;
 

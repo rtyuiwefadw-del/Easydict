@@ -969,6 +969,30 @@ static NSString *const kMDictEntryURIScheme = @"mdict-entry";
             make.left.equalTo(leftAnchor.mas_right).offset(buttonPadding);
             make.width.height.bottom.equalTo(audioButton);
         }];
+
+        // Follow-up continues this service's finished answer as a conversation.
+        EDFollowUpButton *followUpButton = [[EDFollowUpButton alloc] init];
+        [self addSubview:followUpButton];
+        EZStreamService *streamService = (EZStreamService *)self.service;
+        followUpButton.enabled = streamService.canFollowUp && result.isStreamFinished;
+        followUpButton.mas_key = @"result_followUpButton";
+
+        followUpButton.clickAction = ^{
+            mm_strongify(self);
+            EZBaseQueryViewController *queryViewController = nil;
+            if ([self.window isKindOfClass:EZBaseQueryWindow.class]) {
+                queryViewController = ((EZBaseQueryWindow *)self.window).queryViewController;
+            }
+            if (!queryViewController) {
+                queryViewController = EZWindowManager.shared.floatingWindow.queryViewController;
+            }
+            [queryViewController beginFollowUpWithService:streamService];
+        };
+
+        [followUpButton mas_makeConstraints:^(MASConstraintMaker *make) {
+            make.left.equalTo(markdownToggleButton.mas_right).offset(buttonPadding);
+            make.width.height.bottom.equalTo(audioButton);
+        }];
     }
 
     // webView height need time to calculate, and the value will be called back later.

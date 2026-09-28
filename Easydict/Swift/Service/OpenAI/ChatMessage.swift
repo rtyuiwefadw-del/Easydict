@@ -39,6 +39,9 @@ struct ChatMessage {
 
     let role: ChatRole
     let content: String
+
+    /// Images attached to a user message, encoded as `data:` URLs.
+    var imageURLs: [String] = []
 }
 
 // MARK: - AIToolType

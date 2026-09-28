@@ -44,6 +44,18 @@ static NSTimeInterval const EZDelayDetectTextLanguageInterval = 1.0;
 @property (nonatomic, copy) void (^updateInputTextBlock)(NSString *text, CGFloat queryViewHeight);
 @property (nonatomic, copy) void (^selectedLanguageBlock)(EZLanguage language);
 
+/// Name of the AI service the input currently follows up; nil for normal queries.
+@property (nonatomic, copy, nullable) NSString *followUpServiceName;
+
+/// Called when the user dismisses the follow-up chip.
+@property (nonatomic, copy) void (^cancelFollowUpBlock)(void);
+
+/// Append images to `queryModel.attachedImages`, up to the attachment limit.
+- (void)addAttachedImages:(NSArray<NSImage *> *)images;
+
+/// Refresh the attachment strip after `queryModel.attachedImages` changed.
+- (void)reloadAttachments;
+
 
 - (CGFloat)heightOfQueryView;
 

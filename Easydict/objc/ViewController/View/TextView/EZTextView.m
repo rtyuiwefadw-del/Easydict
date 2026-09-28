@@ -95,6 +95,10 @@
 
 // 重写粘贴方法，纯文本粘贴  https://stackoverflow.com/questions/8198767/how-can-you-intercept-pasting-into-a-nstextview-to-remove-unsupported-formatting
 - (void)paste:(id)sender {
+    if (self.pasteImagesBlock && self.pasteImagesBlock()) {
+        return;
+    }
+
     [self pasteAsPlainText:sender];
 
     if (self.pasteTextBlock) {

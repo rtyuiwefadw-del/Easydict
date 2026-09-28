@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ED0C0DFFAE45A7F3DFD2201A /* ConversationTurnTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0CCEFA11019B38526B7478 /* ConversationTurnTests.swift */; };
+		ED0C083BBE5D851DC2B1162B /* QueryAccessoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C7B61CFB33A92AAC7A8C3 /* QueryAccessoryView.swift */; };
+		ED0C568180A86B47432AE32D /* FollowUpButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C552A61A8D18205B8F7D1 /* FollowUpButton.swift */; };
+		ED0CB75C5AEFB46C1790E02F /* ChatImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0CF9CDEA717536ECA51B68 /* ChatImageLoader.swift */; };
+		ED0C994CF821EA0E2F1A9D36 /* StreamService+Conversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C5B0637551DD19B87B548 /* StreamService+Conversation.swift */; };
 		02DEDC04202604300000007E /* MarkdownRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02DEDC042026043000000002 /* MarkdownRenderer.swift */; };
 		02DEDC04202604300000008E /* MarkdownLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02DEDC042026043000000003 /* MarkdownLabel.swift */; };
 		02DEDC04202604300000009E /* MarkdownToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02DEDC042026043000000004 /* MarkdownToggleButton.swift */; };
@@ -634,6 +639,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		ED0CCEFA11019B38526B7478 /* ConversationTurnTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationTurnTests.swift; sourceTree = "<group>"; };
+		ED0C7B61CFB33A92AAC7A8C3 /* QueryAccessoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryAccessoryView.swift; sourceTree = "<group>"; };
+		ED0C552A61A8D18205B8F7D1 /* FollowUpButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FollowUpButton.swift; sourceTree = "<group>"; };
+		ED0CF9CDEA717536ECA51B68 /* ChatImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatImageLoader.swift; sourceTree = "<group>"; };
+		ED0C5B0637551DD19B87B548 /* StreamService+Conversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamService+Conversation.swift"; sourceTree = "<group>"; };
 		003F53EF2A8C452998524A99 /* UtilityFunctionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UtilityFunctionsTests.swift; sourceTree = "<group>"; };
 		02DEDC042026043000000002 /* MarkdownRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownRenderer.swift; sourceTree = "<group>"; };
 		02DEDC042026043000000003 /* MarkdownLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownLabel.swift; sourceTree = "<group>"; };
@@ -1394,6 +1404,24 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		ED0C03188C1E6419C55EDC93 /* Conversation */ = {
+			isa = PBXGroup;
+			children = (
+				ED0CCEFA11019B38526B7478 /* ConversationTurnTests.swift */,
+			);
+			path = Conversation;
+			sourceTree = "<group>";
+		};
+		ED0C2DE20281961470F9C263 /* Conversation */ = {
+			isa = PBXGroup;
+			children = (
+				ED0CF9CDEA717536ECA51B68 /* ChatImageLoader.swift */,
+				ED0C552A61A8D18205B8F7D1 /* FollowUpButton.swift */,
+				ED0C7B61CFB33A92AAC7A8C3 /* QueryAccessoryView.swift */,
+			);
+			path = Conversation;
+			sourceTree = "<group>";
+		};
 		02DEDC042026043000000001 /* Markdown */ = {
 			isa = PBXGroup;
 			children = (
@@ -2070,6 +2098,7 @@
 				0365B0662D3BE26000865F46 /* StreamService+UpdateResult.swift */,
 				03FA677D2C2EFB10000FEA64 /* StreamService+Configuration.swift */,
 				03779F0C2BB256A7008D3C42 /* StreamService+Prompt.swift */,
+				ED0C5B0637551DD19B87B548 /* StreamService+Conversation.swift */,
 				0396DE542BB5844A009FD2A5 /* BaseOpenAIService.swift */,
 				03779F0B2BB256A7008D3C42 /* OpenAIService.swift */,
 				031CBA632CD76F1500364437 /* ChatMessage.swift */,
@@ -3491,6 +3520,7 @@
 				EA3B81F72B52549B004C0E8B /* Configuration */,
 				03779F122BB256B5008D3C42 /* DefaultAPIKeys */,
 				6A8C988B2BAC88A600DB835A /* Localization */,
+				ED0C2DE20281961470F9C263 /* Conversation */,
 				02DEDC042026043000000001 /* Markdown */,
 				967712EC2B5B941600105E0F /* Shortcut */,
 			);
@@ -3538,6 +3568,7 @@
 		BE5912DE778CDCD8495CA4E5 /* Feature */ = {
 			isa = PBXGroup;
 			children = (
+				ED0C03188C1E6419C55EDC93 /* Conversation */,
 				02DEDC0420260430000000C1 /* Markdown */,
 				030732CB2F24862A0001382A /* OCR */,
 			);
@@ -4194,6 +4225,7 @@
 			files = (
 				1CC83D91B3954BE7894CC2C8 /* MDictReaderTests.swift in Sources */,
 				02DEDC0420260430000000BE /* MarkdownRendererTests.swift in Sources */,
+				ED0C0DFFAE45A7F3DFD2201A /* ConversationTurnTests.swift in Sources */,
 				C09AC0F264D246FC90F9A277 /* AppleServiceTests.swift in Sources */,
 				03A884782F13000100D5C0DE /* AppleScriptExecutorTests.swift in Sources */,
 				03A884742F13000100D5C0DE /* AppleScriptProcessExecutorTests.swift in Sources */,
@@ -4256,6 +4288,9 @@
 				02DEDC04202604300000007E /* MarkdownRenderer.swift in Sources */,
 				02DEDC04202604300000008E /* MarkdownLabel.swift in Sources */,
 				02DEDC04202604300000009E /* MarkdownToggleButton.swift in Sources */,
+				ED0C083BBE5D851DC2B1162B /* QueryAccessoryView.swift in Sources */,
+				ED0C568180A86B47432AE32D /* FollowUpButton.swift in Sources */,
+				ED0CB75C5AEFB46C1790E02F /* ChatImageLoader.swift in Sources */,
 				0338210C2F0EAF490087A361 /* AppleScriptTask.swift in Sources */,
 				03F5A1032F5B3A0100AA0001 /* NSStringEasydictBridge.swift in Sources */,
 				03715A282E6D24F60067259C /* SystemUtility.swift in Sources */,
@@ -4535,6 +4570,7 @@
 				0333D4C52E5C784600CD4613 /* ShortcutModifier.swift in Sources */,
 				EA9943F22B5358BF00EE7B97 /* Language+Extension.swift in Sources */,
 				03779F0F2BB256A7008D3C42 /* StreamService+Prompt.swift in Sources */,
+				ED0C994CF821EA0E2F1A9D36 /* StreamService+Conversation.swift in Sources */,
 				032E7CD12E13CE2100BB8B00 /* OCRLineMeasurer.swift in Sources */,
 				03F44F2B2E57813B003C2EA3 /* RecognizedTextObservation+Extension.swift in Sources */,
 				031258512E18C4EA0072320C /* String+ToChinese.swift in Sources */,

@@ -41,6 +41,9 @@ static const NSTimeInterval EZAutoQueryWhenTextChangedDelay = 0.8;
 @property (nonatomic, strong) EZSchemeParser *schemeParser;
 @property (nonatomic, strong) id fontSizeObserver;
 
+@property (nonatomic, strong) EDQueryAccessoryView *accessoryView;
+@property (nonatomic, strong) EZHoverButton *imageButton;
+
 @end
 
 @implementation EZQueryView
@@ -205,6 +208,113 @@ static const NSTimeInterval EZAutoQueryWhenTextChangedDelay = 0.8;
             self.clearBlock(self.copiedText);
         }
     }];
+
+    [self setupAttachments];
+}
+
+/// Attachment strip, image picker button, and image paste handling.
+- (void)setupAttachments {
+    EDQueryAccessoryView *accessoryView = [[EDQueryAccessoryView alloc] init];
+    accessoryView.hidden = YES;
+    [self addSubview:accessoryView];
+    self.accessoryView = accessoryView;
+
+    mm_weakify(self);
+    accessoryView.removeImageAction = ^(NSInteger index) {
+        mm_strongify(self);
+        NSMutableArray<NSImage *> *images = [self.queryModel.attachedImages mutableCopy];
+        if (index >= 0 && index < images.count) {
+            [images removeObjectAtIndex:index];
+            self.queryModel.attachedImages = images;
+            [self reloadAttachments];
+        }
+    };
+    accessoryView.cancelFollowUpAction = ^{
+        mm_strongify(self);
+        if (self.cancelFollowUpBlock) {
+            self.cancelFollowUpBlock();
+        }
+    };
+
+    EZHoverButton *imageButton = [[EZHoverButton alloc] init];
+    [self addSubview:imageButton];
+    self.imageButton = imageButton;
+    imageButton.image = [NSImage ez_imageWithSymbolName:@"photo"];
+    imageButton.toolTip = NSLocalizedString(@"conversation.image.add_button.tooltip", nil);
+    [imageButton executeLight:^(NSButton *button) {
+        button.contentTintColor = [NSColor ez_imageTintLightColor];
+    } dark:^(NSButton *button) {
+        button.contentTintColor = [NSColor ez_imageTintDarkColor];
+    }];
+    [imageButton setClickBlock:^(EZButton *_Nonnull button) {
+        [EDChatImageLoader chooseImagesWithCompletion:^(NSArray<NSImage *> *images) {
+            mm_strongify(self);
+            [self addAttachedImages:images];
+            [self.window makeFirstResponder:self.textView];
+        }];
+    }];
+
+    [self.textView setPasteImagesBlock:^BOOL {
+        mm_strongify(self);
+        NSArray<NSImage *> *images = [EDChatImageLoader imagesFrom:NSPasteboard.generalPasteboard];
+        if (images.count == 0) {
+            return NO;
+        }
+        [self addAttachedImages:images];
+        return YES;
+    }];
+}
+
+#pragma mark - Attachments
+
+- (void)addAttachedImages:(NSArray<NSImage *> *)images {
+    if (images.count == 0) {
+        return;
+    }
+
+    NSMutableArray<NSImage *> *attachedImages = [self.queryModel.attachedImages mutableCopy];
+    for (NSImage *image in images) {
+        if (attachedImages.count >= EDChatImageLoader.maxImageCount) {
+            [EZToast showText:NSLocalizedString(@"conversation.image.limit_reached", nil)];
+            break;
+        }
+        [attachedImages addObject:image];
+    }
+
+    // Images wait for the user's question, so drop any pending auto query.
+    [self cancelAutoQuery];
+    self.queryModel.attachedImages = attachedImages;
+    [self reloadAttachments];
+}
+
+- (void)reloadAttachments {
+    NSArray<NSImage *> *images = self.queryModel.attachedImages ?: @[];
+    CGFloat oldHeight = self.accessoryView.preferredHeight;
+
+    if (![self.accessoryView.images isEqualToArray:images]) {
+        self.accessoryView.images = images;
+    }
+
+    if (self.accessoryView.preferredHeight != oldHeight) {
+        [self setNeedsUpdateConstraints:YES];
+        // Report the new height so the host cell and window can resize.
+        [self updateInputText:nil];
+    }
+}
+
+- (void)setFollowUpServiceName:(nullable NSString *)followUpServiceName {
+    _followUpServiceName = [followUpServiceName copy];
+
+    CGFloat oldHeight = self.accessoryView.preferredHeight;
+    self.accessoryView.followUpServiceName = followUpServiceName;
+    if (followUpServiceName) {
+        [self cancelAutoQuery];
+    }
+
+    if (self.accessoryView.preferredHeight != oldHeight) {
+        [self setNeedsUpdateConstraints:YES];
+        [self updateInputText:nil];
+    }
 }
 
 - (NSTextField *)alertTextField {
@@ -230,7 +340,12 @@ static const NSTimeInterval EZAutoQueryWhenTextChangedDelay = 0.8;
 #pragma mark - Public Methods
 
 - (CGFloat)heightOfQueryView {
-    return [self heightOfTextView] + EZQueryViewExceptInputViewHeight;
+    return [self heightOfTextView] + [self heightExceptTextView];
+}
+
+/// Height of everything except the text view: bottom buttons and attachments.
+- (CGFloat)heightExceptTextView {
+    return EZQueryViewExceptInputViewHeight + self.accessoryView.preferredHeight;
 }
 
 - (void)setClearButtonHidden:(BOOL)hidden {
@@ -296,8 +411,21 @@ static const NSTimeInterval EZAutoQueryWhenTextChangedDelay = 0.8;
     [self updateDetectButton];
     
     
-    [self.scrollView mas_remakeConstraints:^(MASConstraintMaker *make) {
+    CGFloat accessoryHeight = self.accessoryView.preferredHeight;
+    [self.accessoryView mas_remakeConstraints:^(MASConstraintMaker *make) {
         make.top.left.right.inset(0);
+        make.height.mas_equalTo(accessoryHeight);
+    }];
+
+    [self.imageButton mas_remakeConstraints:^(MASConstraintMaker *make) {
+        make.right.equalTo(self.clearButton.mas_left).offset(-2);
+        make.bottom.equalTo(self.clearButton);
+        make.width.height.mas_equalTo(24);
+    }];
+
+    [self.scrollView mas_remakeConstraints:^(MASConstraintMaker *make) {
+        make.top.equalTo(self.accessoryView.mas_bottom);
+        make.left.right.inset(0);
         // Add a padding to audio button, avoid making users feel that there is still text below that has not been fully displayed.
         make.bottom.equalTo(self.audioButton.mas_top).offset(-EZAudioButtonInputViewTopPadding_4);
         
@@ -331,11 +459,12 @@ static const NSTimeInterval EZAutoQueryWhenTextChangedDelay = 0.8;
 //        [self.textView didChangeText];
         
         [self updateInputText:queryText];
-        
+
         [self setAlertTextHidden:YES];
     }
-    
+
     [self updateButtonsDisplayState:queryText];
+    [self reloadAttachments];
 }
 
 - (void)setAssociatedWindowType:(EZWindowType)windowType {
@@ -526,6 +655,12 @@ static const NSTimeInterval EZAutoQueryWhenTextChangedDelay = 0.8;
         return;
     }
 
+    // Follow-ups and image questions are sent explicitly with Enter, so a
+    // half-typed question is never sent on a typing pause.
+    if (self.followUpServiceName.length > 0 || self.queryModel.attachedImages.count > 0) {
+        return;
+    }
+
     [self performSelector:@selector(autoQueryWhenTextChanged)
                withObject:nil
                afterDelay:EZAutoQueryWhenTextChangedDelay];
@@ -573,7 +708,7 @@ static const NSTimeInterval EZAutoQueryWhenTextChangedDelay = 0.8;
     
     if (self.updateInputTextBlock) {
         CGFloat textViewHeight = [self heightOfTextView];
-        self.updateInputTextBlock(text, textViewHeight + EZQueryViewExceptInputViewHeight);
+        self.updateInputTextBlock(text, textViewHeight + [self heightExceptTextView]);
     }
 }
 

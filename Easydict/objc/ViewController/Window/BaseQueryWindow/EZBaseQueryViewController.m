@@ -65,6 +65,9 @@ static BOOL ez_frame_equal_with_tolerance(CGRect lhs, CGRect rhs, CGFloat tolera
 
 @property (nonatomic, strong) EZQueryService *firstService;
 
+/// AI service whose last answer the input currently follows up, if any.
+@property (nonatomic, strong, nullable) EZStreamService *followUpService;
+
 @property (nonatomic, strong) EZQueryService *defaultTTSService;
 @property (nonatomic, strong) EZQueryService *youdaoService;
 
@@ -266,6 +269,9 @@ static BOOL ez_frame_equal_with_tolerance(CGRect lhs, CGRect rhs, CGFloat tolera
 }
 
 - (void)setupServices:(NSArray *)allServices {
+    // Service instances may be replaced, so a follow-up target would go stale.
+    [self endFollowUp];
+
     NSMutableArray *serviceTypeIds = [NSMutableArray array];
     NSMutableArray *services = [NSMutableArray array];
 
@@ -485,6 +491,14 @@ static BOOL ez_frame_equal_with_tolerance(CGRect lhs, CGRect rhs, CGFloat tolera
 - (void)startQueryText:(NSString *)text actionType:(EZActionType)actionType {
     MMLogInfo(@"query actionType: %@", actionType);
 
+    // Any regular query starts a new conversation.
+    [self endFollowUp];
+
+    // An image sent without a question gets a default one.
+    if ([text ns_trim].length == 0 && self.queryModel.attachedImages.count > 0) {
+        text = NSLocalizedString(@"conversation.image.default_question", nil);
+    }
+
     if ([text  ns_trim].length == 0) {
         MMLogWarn(@"query text is empty");
         return;
@@ -660,12 +674,15 @@ static BOOL ez_frame_equal_with_tolerance(CGRect lhs, CGRect rhs, CGFloat tolera
     // Clear query text, detect language and clear button right now;
     self.inputText = @"";
     self.queryModel.ocrImage = nil;
+    self.queryModel.attachedImages = @[];
+    [self.queryView reloadAttachments];
     [self.queryView setAlertTextHidden:YES];
 
     [self.audioPlayer stop];
 }
 
 - (void)clearAll {
+    [self endFollowUp];
     [self clearInput];
 
     [self updateQueryCellWithCompletionHandler:^{
@@ -867,6 +884,8 @@ static BOOL ez_frame_equal_with_tolerance(CGRect lhs, CGRect rhs, CGFloat tolera
     MMLogInfo(@"query: %@ --> %@", queryModel.queryFromLanguage, queryModel.queryTargetLanguage);
 
     self.firstService = nil;
+    BOOL hasImages = queryModel.attachedImages.count > 0;
+    BOOL queriedAnyService = NO;
     for (EZQueryService *service in self.services) {
         BOOL enableAutoQuery = service.enabledQuery && service.enabledAutoQuery && service.supportedQueryType != EZQueryTextTypeNone;
         if (!enableAutoQuery) {
@@ -874,12 +893,25 @@ static BOOL ez_frame_equal_with_tolerance(CGRect lhs, CGRect rhs, CGFloat tolera
             continue;
         }
 
+        // Image questions only go to AI services that can read images.
+        if (hasImages && ![self serviceSupportsImageInput:service]) {
+            MMLogInfo(@"service skipped for image query: %@", service.serviceTypeWithUniqueIdentifier);
+            continue;
+        }
+        queriedAnyService = YES;
+
         [self queryWithModel:queryModel service:service];
 
         if (!self.firstService) {
             self.firstService = service;
             [self autoCopyTranslatedTextOfService:service];
         }
+    }
+
+    if (hasImages && !queriedAnyService) {
+        // A toast keeps the question and images in the input, unlike the tips cell.
+        [EZToast showText:NSLocalizedString(@"conversation.error.no_image_service", nil)];
+        return;
     }
 
     [[EZLocalStorage shared] increaseQueryCount:self.inputText];
@@ -961,6 +993,95 @@ static BOOL ez_frame_equal_with_tolerance(CGRect lhs, CGRect rhs, CGFloat tolera
     [service startQueryStream:queryModel completionHandler:completion];
 
     [EZLocalStorage.shared increaseQueryService:service];
+}
+
+#pragma mark - Conversation
+
+- (BOOL)serviceSupportsImageInput:(EZQueryService *)service {
+    if (![service isKindOfClass:EZStreamService.class]) {
+        return NO;
+    }
+    return ((EZStreamService *)service).supportsImageInput;
+}
+
+- (void)attachImages:(NSArray<NSImage *> *)images {
+    [self.queryView addAttachedImages:images];
+}
+
+- (void)beginFollowUpWithService:(EZQueryService *)service {
+    if (![service isKindOfClass:EZStreamService.class]) {
+        return;
+    }
+
+    EZStreamService *streamService = (EZStreamService *)service;
+    if (!streamService.canFollowUp) {
+        [EZToast showText:NSLocalizedString(@"conversation.follow_up.unavailable", nil)];
+        return;
+    }
+
+    MMLogInfo(@"begin follow-up with service: %@", service.serviceTypeWithUniqueIdentifier);
+
+    [self cancelAutoQuery];
+    self.followUpService = streamService;
+
+    // The input now holds the next question, not the original query.
+    self.inputText = @"";
+    self.queryModel.attachedImages = @[];
+    self.queryView.followUpServiceName = service.name;
+    [self.queryView reloadAttachments];
+
+    [self focusInputTextView];
+}
+
+- (void)endFollowUp {
+    if (!self.followUpService) {
+        return;
+    }
+
+    MMLogInfo(@"end follow-up");
+    self.followUpService = nil;
+    self.queryView.followUpServiceName = nil;
+}
+
+/// Send `text` and the attached images to the follow-up service only, keeping
+/// the other results, then clear the input for the next question.
+- (void)sendFollowUpText:(NSString *)text {
+    EZStreamService *service = self.followUpService;
+    NSArray<NSImage *> *images = self.queryModel.attachedImages ?: @[];
+
+    NSString *question = [text ns_trim];
+    if (question.length == 0) {
+        if (images.count == 0) {
+            return;
+        }
+        question = NSLocalizedString(@"conversation.image.default_question", nil);
+    }
+
+    if (images.count > 0 && !service.supportsImageInput) {
+        [EZToast showText:NSLocalizedString(@"conversation.error.image_unsupported", nil)];
+        return;
+    }
+
+    if (service.result && !service.result.isStreamFinished) {
+        [EZToast showText:NSLocalizedString(@"conversation.follow_up.wait_for_answer", nil)];
+        return;
+    }
+
+    MMLogInfo(@"send follow-up to %@: %@", service.serviceTypeWithUniqueIdentifier, question.truncated);
+
+    // The service reads the model asynchronously, so give it a snapshot that
+    // clearing the input below cannot change.
+    EZQueryModel *model = [self.queryModel copy];
+    model.inputText = question;
+    model.attachedImages = images;
+    model.actionType = EZActionTypeInputQuery;
+
+    service.isFollowUpPending = YES;
+    [self queryWithModel:model service:service];
+
+    self.inputText = @"";
+    self.queryModel.attachedImages = @[];
+    [self.queryView reloadAttachments];
 }
 
 - (void)updateResultLoadingAnimation:(EZQueryResult *)result {
@@ -1521,7 +1642,17 @@ static BOOL ez_frame_equal_with_tolerance(CGRect lhs, CGRect rhs, CGFloat tolera
         mm_strongify(self);
         // tips view hidden once user tap entry
         self.isTipsViewVisible = NO;
+
+        if (self.followUpService) {
+            [self sendFollowUpText:text];
+            return;
+        }
         [self startQueryText:text];
+    }];
+
+    [queryView setCancelFollowUpBlock:^{
+        mm_strongify(self);
+        [self endFollowUp];
     }];
 
     [queryView setPasteTextBlock:^(NSString *_Nonnull text) {

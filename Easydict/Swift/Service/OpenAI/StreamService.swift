@@ -185,6 +185,15 @@ public class StreamService: QueryService {
         }
     }
 
+    /// Regular queries reset results first; follow-ups do not. Clearing the
+    /// flag here keeps a follow-up that failed before streaming from leaking
+    /// into the next regular query.
+    @discardableResult
+    public override func resetServiceResult() -> QueryResult {
+        isFollowUpPending = false
+        return super.resetServiceResult()
+    }
+
     public override func apiKeyRequirement() -> ServiceAPIKeyRequirement {
         .userProvided
     }
@@ -203,6 +212,33 @@ public class StreamService: QueryService {
     var cancellables: Set<AnyCancellable> = []
 
     var hideThinkTagContent: Bool = true
+
+    /// Set by the query controller right before sending a follow-up, so the
+    /// next request continues `conversationMessages` instead of starting over.
+    var isFollowUpPending = false
+
+    /// Messages of the last finished exchange, used as follow-up context.
+    var conversationMessages: [ChatMessage] = []
+
+    /// Markdown transcript of the last finished exchange shown in the card.
+    var conversationTranscript = ""
+
+    /// The turn whose request is currently being built or streamed.
+    var activeConversationTurn: ConversationTurn?
+
+    /// Messages sent by the most recent request, recorded when built.
+    var lastRequestMessages: [ChatMessage] = []
+
+    /// Whether a finished answer exists that a follow-up can continue.
+    var canFollowUp: Bool {
+        !conversationMessages.isEmpty
+    }
+
+    /// Whether requests can carry images. Only OpenAI-compatible payloads
+    /// encode image parts today.
+    var supportsImageInput: Bool {
+        false
+    }
 
     /// Whether requests currently use streaming transport over the network.
     ///
@@ -464,8 +500,16 @@ public class StreamService: QueryService {
     }
 
     /// Base on chat query, convert prompt dict to LLM service prompt model.
-    /// If enableCustomPrompt is true, we will use custom prompt, otherwise use system prompt.
+    /// Follow-up and image turns replace the translation prompts with
+    /// conversation messages; the result is remembered as the turn's request.
     func chatMessageDicts(_ chatQuery: ChatQueryParam) -> [ChatMessage] {
+        let messages = conversationTurnMessages(chatQuery) ?? promptMessages(chatQuery)
+        lastRequestMessages = messages
+        return messages
+    }
+
+    /// If enableCustomPrompt is true, we will use custom prompt, otherwise use system prompt.
+    func promptMessages(_ chatQuery: ChatQueryParam) -> [ChatMessage] {
         if enableCustomPrompt {
             var chatMessages: [ChatMessage] = []
             let systemPrompt = replaceCustomPromptWithVariable(systemPrompt)

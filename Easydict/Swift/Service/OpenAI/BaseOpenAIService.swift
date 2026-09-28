@@ -44,6 +44,10 @@ public class BaseOpenAIService: StreamService {
         true
     }
 
+    override var supportsImageInput: Bool {
+        true
+    }
+
     let control = StreamControl()
 
     override func contentStreamTranslate(
@@ -161,8 +165,10 @@ public class BaseOpenAIService: StreamService {
             let openAIRole = message.role.rawValue
             let content = message.content
 
-            if let role = OpenAIChatMessage.Role(rawValue: openAIRole),
-               let chat = OpenAIChatMessage(role: role, content: content) {
+            if message.role == .user, !message.imageURLs.isEmpty {
+                chatMessages.append(visionUserMessage(text: content, imageURLs: message.imageURLs))
+            } else if let role = OpenAIChatMessage.Role(rawValue: openAIRole),
+                      let chat = OpenAIChatMessage(role: role, content: content) {
                 chatMessages.append(chat)
             }
         }
@@ -187,6 +193,21 @@ public class BaseOpenAIService: StreamService {
             throw QueryError(type: .api, message: "Invalid models response")
         }
         return normalizedRemoteModelIDs(modelList.data.map(\.id))
+    }
+
+    /// Builds a multimodal user message with a text part and `image_url` parts.
+    func visionUserMessage(text: String, imageURLs: [String]) -> OpenAIChatMessage {
+        typealias Content = OpenAIChatMessage.ChatCompletionUserMessageParam.Content
+        typealias Part = Content.VisionContent
+
+        var parts: [Part] = []
+        if !text.isEmpty {
+            parts.append(.chatCompletionContentPartTextParam(.init(text: text)))
+        }
+        for url in imageURLs {
+            parts.append(.chatCompletionContentPartImageParam(.init(imageUrl: .init(url: url, detail: .auto))))
+        }
+        return .user(.init(content: .vision(parts)))
     }
 
     // MARK: Private
