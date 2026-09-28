@@ -210,6 +210,119 @@ struct MarkdownRendererTests {
         #expect(!plain.contains("##"))
     }
 
+    @Test("Thematic break renders as an attachment, not literal dashes")
+    func thematicBreak() {
+        let result = renderer.render("Before\n\n---\n\nAfter")
+        #expect(!result.string.contains("---"))
+        #expect(result.string.contains("Before"))
+        #expect(result.string.contains("After"))
+
+        let attachmentRange = (result.string as NSString)
+            .range(of: "\u{FFFC}")
+        #expect(attachmentRange.location != NSNotFound)
+        let attachment = result.attribute(.attachment, at: attachmentRange.location, effectiveRange: nil)
+        #expect(attachment is NSTextAttachment)
+    }
+
+    @Test("Asterisk and underscore thematic breaks are also recognized")
+    func thematicBreakVariants() {
+        for marker in ["***", "___", "- - -"] {
+            let result = renderer.render("A\n\n\(marker)\n\nB")
+            #expect(!result.string.contains(marker), "marker \(marker) should not remain literal")
+        }
+    }
+
+    @Test("GFM table renders cells without literal pipe syntax")
+    func table() {
+        let source = """
+        | Command | Description |
+        | :--- | :--- |
+        | `xcodebuild build` | Build the app. |
+        | `xcodebuild test` | Run tests. |
+        """
+        let result = renderer.render(source)
+        let plain = result.string
+        #expect(!plain.contains("|"))
+        #expect(!plain.contains(":---"))
+        #expect(plain.contains("Command"))
+        #expect(plain.contains("Description"))
+        #expect(plain.contains("xcodebuild build"))
+        #expect(plain.contains("Run tests."))
+
+        let headerRange = (plain as NSString).range(of: "Command")
+        let headerStyle = result.attribute(.paragraphStyle, at: headerRange.location, effectiveRange: nil)
+            as? NSParagraphStyle
+        #expect(headerStyle?.textBlocks.isEmpty == false)
+    }
+
+    @Test("A pipe row without a delimiter row stays a plain paragraph")
+    func pipeWithoutDelimiterStaysPlain() {
+        let result = renderer.render("Run `cmd | xcbeautify` now.")
+        #expect(result.string.contains("cmd | xcbeautify"))
+    }
+
+    @Test("Fenced code block background spans the block as one continuous region")
+    func codeBlockUsesTextBlock() {
+        let source = "Before\n```\nline one\nline two\n```\nAfter"
+        let result = renderer.render(source)
+        let range = (result.string as NSString).range(of: "line one")
+        let style = result.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle
+        #expect(style?.textBlocks.isEmpty == false)
+    }
+
+    @Test("Inline LaTeX converts Greek letters and superscripts to Unicode")
+    func inlineLatexGreekAndSuperscript() {
+        let result = renderer.render(#"Given $\alpha^2 + \beta^2 = \gamma^2$ holds."#)
+        let plain = result.string
+        #expect(plain.contains("α²"))
+        #expect(plain.contains("β²"))
+        #expect(plain.contains("γ²"))
+        #expect(!plain.contains("$"))
+        #expect(!plain.contains("\\alpha"))
+    }
+
+    @Test("Inline LaTeX subscript does not trigger italic emphasis")
+    func inlineLatexSubscriptAvoidsItalic() {
+        let result = renderer.render(#"Let $x_i$ denote the term."#)
+        #expect(result.string.contains("xᵢ"))
+        #expect(!result.string.contains("_"))
+    }
+
+    @Test("LaTeX \\frac and \\sqrt convert to a readable fallback")
+    func inlineLatexFracAndSqrt() {
+        let result = renderer.render(#"$\frac{a}{b}$ and $\sqrt{2}$"#)
+        let plain = result.string
+        #expect(plain.contains("a/b"))
+        #expect(plain.contains("√(2)"))
+    }
+
+    @Test("Currency amounts are not mistaken for LaTeX math")
+    func currencyIsNotMath() {
+        let result = renderer.render("It costs $5 and $10.")
+        #expect(result.string == "It costs $5 and $10.")
+    }
+
+    @Test("Unknown LaTeX commands keep their bare name instead of vanishing")
+    func unknownLatexCommandKeepsName() {
+        let result = renderer.render(#"$\foobarcmd{x}$"#)
+        #expect(result.string.contains("foobarcmd"))
+    }
+
+    @Test("Block \\$\\$ math renders as a centered converted paragraph")
+    func blockMath() {
+        let source = "Intro\n\n$$\n\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\n$$\n\nOutro"
+        let result = renderer.render(source)
+        let plain = result.string
+        #expect(!plain.contains("$$"))
+        #expect(plain.contains("∑"))
+        #expect(plain.contains("Intro"))
+        #expect(plain.contains("Outro"))
+
+        let sumRange = (plain as NSString).range(of: "∑")
+        let style = result.attribute(.paragraphStyle, at: sumRange.location, effectiveRange: nil) as? NSParagraphStyle
+        #expect(style?.alignment == .center)
+    }
+
     @Test("Renderer handles a few hundred chars under streaming budget")
     func streamingBudget() {
         let source = String(repeating: "## Heading\n**bold** and *italic* with `code`.\n", count: 16)
