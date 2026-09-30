@@ -176,23 +176,44 @@ public class BaseOpenAIService: StreamService {
     }
 
     override func fetchRemoteModelIDs() async throws -> [String] {
-        guard !apiKey.trim().isEmpty else {
+        try await fetchRemoteModelIDs(chatEndpoint: endpoint, apiKey: apiKey)
+    }
+
+    /// Lists model IDs with an OpenAI-compatible `GET …/models` request built
+    /// from `chatEndpoint` and `apiKey`, independent of stored settings.
+    func fetchRemoteModelIDs(chatEndpoint: String, apiKey: String) async throws -> [String] {
+        // Pasted keys often carry a trailing newline or spaces, which the
+        // server would reject as a different, invalid key.
+        let apiKey = apiKey.trim()
+        guard !apiKey.isEmpty else {
             throw QueryError(type: .missingSecretKey, message: "API key is empty")
         }
 
         let data = try await fetchRemoteModelData(
-            url: try remoteModelsURL(),
-            headers: [
-                .authorization(bearerToken: apiKey),
-                HTTPHeader(name: "api-key", value: apiKey),
-                .accept("application/json"),
-            ]
+            url: try remoteModelsURL(chatEndpoint: chatEndpoint),
+            headers: remoteModelsHeaders(apiKey: apiKey)
         )
 
         guard let modelList = try? JSONDecoder().decode(OpenAIModelListResponse.self, from: data) else {
             throw QueryError(type: .api, message: "Invalid models response")
         }
         return normalizedRemoteModelIDs(modelList.data.map(\.id))
+    }
+
+    /// Explicit model-list URL for `chatEndpoint`, or `nil` to derive the
+    /// OpenAI-compatible `/models` path from the chat endpoint itself.
+    func remoteModelsEndpoint(forChatEndpoint chatEndpoint: String) -> String? {
+        remoteModelsEndpoint
+    }
+
+    /// Headers for listing models: `Authorization: Bearer`, the `api-key`
+    /// header used by Azure-style gateways, and a JSON `Accept`.
+    func remoteModelsHeaders(apiKey: String) -> HTTPHeaders {
+        [
+            .authorization(bearerToken: apiKey),
+            HTTPHeader(name: "api-key", value: apiKey),
+            .accept("application/json"),
+        ]
     }
 
     /// Builds a multimodal user message with a text part and `image_url` parts.
@@ -208,6 +229,44 @@ public class BaseOpenAIService: StreamService {
             parts.append(.chatCompletionContentPartImageParam(.init(imageUrl: .init(url: url, detail: .auto))))
         }
         return .user(.init(content: .vision(parts)))
+    }
+
+    /// Resolves the model-list URL: an explicit models endpoint wins,
+    /// otherwise `…/chat/completions` in `chatEndpoint` becomes `…/models`.
+    func remoteModelsURL(chatEndpoint: String) throws -> URL {
+        if let modelsEndpoint = remoteModelsEndpoint(forChatEndpoint: chatEndpoint)?.trim(),
+           !modelsEndpoint.isEmpty,
+           let url = URL(string: modelsEndpoint), url.isValid {
+            return url
+        }
+
+        guard let endpointURL = URL(string: chatEndpoint.trim()), endpointURL.isValid,
+              var components = URLComponents(url: endpointURL, resolvingAgainstBaseURL: false)
+        else {
+            throw QueryError(type: .parameter, message: "Endpoint is invalid")
+        }
+
+        var parts = components.path.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+        let lowercasedParts = parts.map { $0.lowercased() }
+
+        if parts.isEmpty {
+            parts = ["v1"]
+        } else if Array(lowercasedParts.suffix(2)) == ["chat", "completions"] {
+            parts.removeLast(2)
+        } else if lowercasedParts.last == "completions" {
+            parts.removeLast()
+        } else if lowercasedParts.last == "models" {
+            parts.removeLast()
+        }
+
+        parts.append("models")
+        components.fragment = nil
+        components.path = "/" + parts.joined(separator: "/")
+
+        guard let url = components.url, url.isValid else {
+            throw QueryError(type: .parameter, message: "Endpoint is invalid")
+        }
+        return url
     }
 
     // MARK: Private
@@ -349,41 +408,6 @@ public class BaseOpenAIService: StreamService {
         }
         request.httpBody = try JSONEncoder().encode(query)
         return request
-    }
-
-    private func remoteModelsURL() throws -> URL {
-        if let remoteModelsEndpoint = remoteModelsEndpoint?.trim(), !remoteModelsEndpoint.isEmpty,
-           let url = URL(string: remoteModelsEndpoint), url.isValid {
-            return url
-        }
-
-        guard let endpointURL = URL(string: endpoint.trim()), endpointURL.isValid,
-              var components = URLComponents(url: endpointURL, resolvingAgainstBaseURL: false)
-        else {
-            throw QueryError(type: .parameter, message: "Endpoint is invalid")
-        }
-
-        var parts = components.path.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
-        let lowercasedParts = parts.map { $0.lowercased() }
-
-        if parts.isEmpty {
-            parts = ["v1"]
-        } else if Array(lowercasedParts.suffix(2)) == ["chat", "completions"] {
-            parts.removeLast(2)
-        } else if lowercasedParts.last == "completions" {
-            parts.removeLast()
-        } else if lowercasedParts.last == "models" {
-            parts.removeLast()
-        }
-
-        parts.append("models")
-        components.fragment = nil
-        components.path = "/" + parts.joined(separator: "/")
-
-        guard let url = components.url, url.isValid else {
-            throw QueryError(type: .parameter, message: "Endpoint is invalid")
-        }
-        return url
     }
 }
 

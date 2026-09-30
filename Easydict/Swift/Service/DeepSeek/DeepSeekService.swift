@@ -53,18 +53,18 @@ class DeepSeekService: OpenAIService {
         "https://api.deepseek.com/v1/chat/completions"
     }
 
-    override var remoteModelsEndpoint: String? {
-        "https://api.deepseek.com/models"
-    }
-
-    override var remoteModelFetchRequiresEndpoint: Bool {
-        false
-    }
-
     /// DeepSeek V4 supports reasoning effort, exposing the shared picker and
     /// sending `thinking` and `reasoning_effort` to the API.
     override var supportsReasoningEffort: Bool {
         true
+    }
+
+    /// Only DeepSeek's own host uses the documented `/models` URL. A custom
+    /// endpoint, such as a company gateway, lists its own models, so the
+    /// request must go to that host instead of api.deepseek.com.
+    override func remoteModelsEndpoint(forChatEndpoint chatEndpoint: String) -> String? {
+        let host = URL(string: chatEndpoint.trim())?.host?.lowercased()
+        return host == "api.deepseek.com" ? "https://api.deepseek.com/models" : nil
     }
 
     override func contentStreamTranslate(
