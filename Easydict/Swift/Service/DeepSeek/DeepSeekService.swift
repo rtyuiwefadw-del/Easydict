@@ -59,6 +59,12 @@ class DeepSeekService: OpenAIService {
         true
     }
 
+    /// DeepSeek is often pointed at company gateways that also host other
+    /// vendors' models in their native formats.
+    override var supportsModelProtocolRouting: Bool {
+        true
+    }
+
     /// Only DeepSeek's own host uses the documented `/models` URL. A custom
     /// endpoint, such as a company gateway, lists its own models, so the
     /// request must go to that host instead of api.deepseek.com.
@@ -73,7 +79,13 @@ class DeepSeekService: OpenAIService {
         to: Language
     )
         -> AsyncThrowingStream<String, Error> {
-        AsyncThrowingStream { continuation in
+        // A custom endpoint may serve some models only in their native format.
+        let apiProtocol = resolvedModelProtocol()
+        if apiProtocol != .openAIChat, !apiKey.isEmpty {
+            return modelProtocolContentStream(apiProtocol, text: text, from: from, to: to)
+        }
+
+        return AsyncThrowingStream { continuation in
             guard let url = URL(string: endpoint), url.isValid else {
                 continuation.finish(
                     throwing: QueryError(

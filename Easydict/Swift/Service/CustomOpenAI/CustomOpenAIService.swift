@@ -28,6 +28,12 @@ class CustomOpenAIService: BaseOpenAIService {
 
     override var supportsStreamingToggle: Bool { true }
 
+    /// Custom endpoints are often multi-vendor gateways; pick the wire format
+    /// per model name.
+    override var supportsModelProtocolRouting: Bool {
+        true
+    }
+
     override func serviceTypeWithUniqueIdentifier() -> String {
         guard !uuid.isEmpty else {
             return ServiceType.customOpenAI.rawValue

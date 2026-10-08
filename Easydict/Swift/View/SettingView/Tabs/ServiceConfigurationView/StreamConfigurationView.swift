@@ -148,6 +148,16 @@ struct StreamConfigurationView: View {
                 )
             }
 
+            if service.supportsModelProtocolRouting {
+                TextEditorCell(
+                    titleKey: "service.configuration.model_protocol_rules.title",
+                    storedValueKey: service.modelProtocolRulesKey,
+                    placeholder: "service.configuration.model_protocol_rules.placeholder",
+                    footnote: "service.configuration.model_protocol_rules.footnote",
+                    height: 70
+                )
+            }
+
             if service.supportsReasoningEffort {
                 StaticPickerCell(
                     titleKey: "service.configuration.reasoning_effort.title",

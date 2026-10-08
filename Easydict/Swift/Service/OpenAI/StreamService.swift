@@ -240,6 +240,13 @@ public class StreamService: QueryService {
         false
     }
 
+    /// Whether the service picks the wire format per model name, so one
+    /// gateway endpoint can serve OpenAI, Anthropic, Gemini, and Responses
+    /// models. See ``ModelAPIProtocol``.
+    var supportsModelProtocolRouting: Bool {
+        false
+    }
+
     /// Whether requests currently use streaming transport over the network.
     ///
     /// This is intentionally narrower than `isStream()`: a service may remain stream-capable

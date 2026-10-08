@@ -78,6 +78,12 @@ public class BaseOpenAIService: StreamService {
 
         result.isStreamFinished = false
 
+        // Gateways may serve some models only in their vendor's native format.
+        let apiProtocol = resolvedModelProtocol()
+        if apiProtocol != .openAIChat {
+            return modelProtocolContentStream(apiProtocol, text: text, from: from, to: to)
+        }
+
         let queryType = queryType(text: text, from: from, to: to)
         let chatQueryParam = ChatQueryParam(
             text: text,

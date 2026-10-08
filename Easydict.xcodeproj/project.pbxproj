@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		ED0C13B59AFD88DC7EC7BB42 /* ModelProtocolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C9F140675EE2C14A1E828 /* ModelProtocolTests.swift */; };
+		ED0C6530F59FD6C078034483 /* StreamService+ModelProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C30865DD98E6AE4D7A3D3 /* StreamService+ModelProtocol.swift */; };
+		ED0C123ABF8AB7B701E862C7 /* ModelAPIStreamParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C910A4D39E976BFFD4680 /* ModelAPIStreamParser.swift */; };
+		ED0CC0904226749E810DFCDB /* ModelAPIRequestBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0CD7003AAFAA08412B2B58 /* ModelAPIRequestBuilder.swift */; };
+		ED0CD8AB5E97B82571C60BD8 /* ModelAPIProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C8275BC9F792920258C1B /* ModelAPIProtocol.swift */; };
 		ED0CFBA24D8A68065CC207E7 /* LocalHTTPServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0C60FB80BFBF4B2231EA58 /* LocalHTTPServer.swift */; };
 		ED0CD468026E9DE486944AFF /* RemoteModelsFetchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0CF21FFD5A3B6FAC45B4B0 /* RemoteModelsFetchTests.swift */; };
 		ED0C7077EBC5EDEC328B68A0 /* CodeBlockCopyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0CE8CEF70DA87F11A1A090 /* CodeBlockCopyButton.swift */; };
@@ -642,6 +647,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		ED0C9F140675EE2C14A1E828 /* ModelProtocolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelProtocolTests.swift; sourceTree = "<group>"; };
+		ED0C30865DD98E6AE4D7A3D3 /* StreamService+ModelProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamService+ModelProtocol.swift"; sourceTree = "<group>"; };
+		ED0C910A4D39E976BFFD4680 /* ModelAPIStreamParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAPIStreamParser.swift; sourceTree = "<group>"; };
+		ED0CD7003AAFAA08412B2B58 /* ModelAPIRequestBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAPIRequestBuilder.swift; sourceTree = "<group>"; };
+		ED0C8275BC9F792920258C1B /* ModelAPIProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelAPIProtocol.swift; sourceTree = "<group>"; };
 		ED0C60FB80BFBF4B2231EA58 /* LocalHTTPServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalHTTPServer.swift; sourceTree = "<group>"; };
 		ED0CF21FFD5A3B6FAC45B4B0 /* RemoteModelsFetchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteModelsFetchTests.swift; sourceTree = "<group>"; };
 		ED0CE8CEF70DA87F11A1A090 /* CodeBlockCopyButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeBlockCopyButton.swift; sourceTree = "<group>"; };
@@ -1410,6 +1420,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		ED0C66CEC1BD9A16590EB623 /* ModelProtocol */ = {
+			isa = PBXGroup;
+			children = (
+				ED0C8275BC9F792920258C1B /* ModelAPIProtocol.swift */,
+				ED0CD7003AAFAA08412B2B58 /* ModelAPIRequestBuilder.swift */,
+				ED0C910A4D39E976BFFD4680 /* ModelAPIStreamParser.swift */,
+				ED0C30865DD98E6AE4D7A3D3 /* StreamService+ModelProtocol.swift */,
+			);
+			path = ModelProtocol;
+			sourceTree = "<group>";
+		};
 		ED0C03188C1E6419C55EDC93 /* Conversation */ = {
 			isa = PBXGroup;
 			children = (
@@ -2072,6 +2093,7 @@
 				03A1B2C52F70000100A1B2C3 /* MiniMax */,
 				0371A4FF2DB128E50097D4A1 /* GitHub Models */,
 				40F5D52A2D65B1A200EDB997 /* DeepSeek */,
+				ED0C66CEC1BD9A16590EB623 /* ModelProtocol */,
 				036463682CB62B6600D0D6CC /* Apple */,
 				03779F0D2BB256A7008D3C42 /* OpenAI */,
 				036D627F2BCAB5C6002C95C7 /* BuiltInAI */,
@@ -2880,6 +2902,7 @@
 				034080A12F6B1C75005C8508 /* AppleSpeechServiceTests.swift */,
 				A1C1A10030ABCDEF00112233 /* ClaudeSSEParserTests.swift */,
 				ED0CF21FFD5A3B6FAC45B4B0 /* RemoteModelsFetchTests.swift */,
+				ED0C9F140675EE2C14A1E828 /* ModelProtocolTests.swift */,
 				0312584E2E1802650072320C /* AppleLanguageDetectorTests.swift */,
 				179EFB3D68574DE5817C8AB9 /* ClaudeCode */,
 				C0DEC11E0003000000000002 /* CodexCLI */,
@@ -4245,6 +4268,7 @@
 				59F60C73B7C74FC8820E138E /* SystemUtilitiesTests.swift in Sources */,
 				A1C1A10130ABCDEF00112233 /* ClaudeSSEParserTests.swift in Sources */,
 				ED0CD468026E9DE486944AFF /* RemoteModelsFetchTests.swift in Sources */,
+				ED0C13B59AFD88DC7EC7BB42 /* ModelProtocolTests.swift in Sources */,
 				03C408F92EF5CB830025A1F0 /* ServiceTests.swift in Sources */,
 				0312584F2E1802650072320C /* AppleLanguageDetectorTests.swift in Sources */,
 				03A8846E2F12000100D5C0DE /* TaskTimeoutTests.swift in Sources */,
@@ -4400,6 +4424,10 @@
 				03FA677E2C2EFB10000FEA64 /* StreamService+Configuration.swift in Sources */,
 				03882F8E29D95044005B5A52 /* ToastWindowController.m in Sources */,
 				40F5D52C2D65B1B900EDB997 /* DeepSeekService.swift in Sources */,
+				ED0CD8AB5E97B82571C60BD8 /* ModelAPIProtocol.swift in Sources */,
+				ED0CC0904226749E810DFCDB /* ModelAPIRequestBuilder.swift in Sources */,
+				ED0C123ABF8AB7B701E862C7 /* ModelAPIStreamParser.swift in Sources */,
+				ED0C6530F59FD6C078034483 /* StreamService+ModelProtocol.swift in Sources */,
 				0337D3CA2E66AA5000B08437 /* SystemUtility+AX.swift in Sources */,
 				03F19D7C2E08FB060046C6F2 /* AppleLanguageMapper.swift in Sources */,
 				039785282CC678F400A49087 /* TranslationManager.swift in Sources */,

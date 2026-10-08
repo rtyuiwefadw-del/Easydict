@@ -10598,6 +10598,129 @@
         }
       }
     },
+    "service.configuration.model_protocol_rules.footnote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One rule per line as model=format; a trailing * matches any suffix. Formats: openai, anthropic, gemini, responses. Without a matching rule, claude* uses anthropic, gemini* uses gemini, and other models use openai."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una regla por línea como modelo=formato; un * final coincide con cualquier sufijo. Formatos: openai, anthropic, gemini, responses. Sin una regla coincidente, claude* usa anthropic, gemini* usa gemini y los demás modelos usan openai."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 行に 1 つ「モデル=形式」で記述し、末尾の * は任意の続きに一致します。形式：openai、anthropic、gemini、responses。一致するルールがない場合、claude* は anthropic、gemini* は gemini、その他は openai を使います。"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedno pravidlo na riadok v tvare model=formát; * na konci zodpovedá ľubovoľnej prípone. Formáty: openai, anthropic, gemini, responses. Bez zhodného pravidla claude* používa anthropic, gemini* používa gemini a ostatné modely openai."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每行一条，格式为「模型=协议」，结尾的 * 匹配任意后缀。协议可选：openai、anthropic、gemini、responses。没有匹配的规则时，claude* 使用 anthropic，gemini* 使用 gemini，其余模型使用 openai。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每行一條，格式為「模型=協定」，結尾的 * 符合任意後綴。協定可選：openai、anthropic、gemini、responses。沒有符合的規則時，claude* 使用 anthropic，gemini* 使用 gemini，其餘模型使用 openai。"
+          }
+        }
+      }
+    },
+    "service.configuration.model_protocol_rules.placeholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-*=anthropic\ngemini-*=gemini\ngpt-5*=responses"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-*=anthropic\ngemini-*=gemini\ngpt-5*=responses"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-*=anthropic\ngemini-*=gemini\ngpt-5*=responses"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-*=anthropic\ngemini-*=gemini\ngpt-5*=responses"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-*=anthropic\ngemini-*=gemini\ngpt-5*=responses"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "claude-*=anthropic\ngemini-*=gemini\ngpt-5*=responses"
+          }
+        }
+      }
+    },
+    "service.configuration.model_protocol_rules.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model API Formats"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatos de API por modelo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル別 API 形式"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formáty API podľa modelu"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型协议规则"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型協定規則"
+          }
+        }
+      }
+    },
     "service.configuration.niutrans.api_key.title" : {
       "localizations" : {
         "en" : {
